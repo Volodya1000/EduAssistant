@@ -1,0 +1,80 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+' uncomment the following line and comment the first to use locally
+'!include C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Component diagram for Personal Education Assistant - API Application\nВерсия 1
+
+Person(student, "Учащийся")
+Person(teacher, "Преподаватель")
+
+Container(spa, "Single Page Application", "Используется фронтенд фреймворк", "Предоставляет доступ к ассистенту через браузер")
+
+
+
+System_Ext(lms,"API\nСистемы электронного обучения БГУИР")
+
+Container_Boundary(api, "API Application") {
+
+    Container_Boundary(controller_boundary, "MVC Контроллеры") {
+    Component(sign_controller, "Контроллер регистрации и авторизации", "MVC Rest Controller", "")
+    Component(chat_controller, "Контроллер чатов", "MVC Rest Controller", "Выбор чата из каталога чатов. Создание, удаление чатов. Ведение диалога")
+    Component(subject_controller, "Контроллер предметов", "MVC Rest Controller", "Добавление, редактирование предметов. Добваление материалов по предметам, в том числе и из интернет источников")
+
+    }
+
+
+    Container_Boundary(multyagent_system_boundary, "Многоагентная система") {
+        Component(orcestrator , "Агент Оркестратор", "Используется фреймворк для создания ИИ агентов", "Решает, каких агентов активировать, основываясь на состоянии системы")
+
+        Component(agent_task_generation, "Агент генерации задач для учащегося", "", "")
+
+        Component(agent_test_analysis, "Агент проверки решений тестов учащимся ", "", "")
+
+
+
+        Component(llmAdapter, "LLM Adapter", "", "Интеграция с локальной LLM")
+
+        Rel(orcestrator, agent_task_generation,"Manage")
+        Rel(orcestrator, agent_test_analysis,"Manage")
+        Rel(orcestrator, llmAdapter,"Use")
+
+        Rel(agent_task_generation, llmAdapter,"Use")
+        Rel(agent_test_analysis, llmAdapter,"Use")
+
+        Container_Boundary(tools_boundary, "Tools"){
+             Component(calculator_tool, "Инструмент калькулятор", "", "Например использование wolfram")
+             Component(wikipedia_tool, "Инструмент поиск определений", "", "Например использование википедии")
+
+        }
+
+        Rel(agent_test_analysis, calculator_tool, Use)
+        Rel(agent_test_analysis, wikipedia_tool, Use)
+
+    }
+
+    ContainerDb(LongTermMemory, "Долговременная память", "Использование семантических сетей,онтологий, векторное хранилище", "Хранение накопленного опыта и всех воспоминаний")
+    ContainerDb(db, "Реляционная база данных + ORM", "Использование ORM", "Хранение информации о пользователях(учащихся и преподавателях), предметах. Используется при регистрации и авторизации. Логирование")
+
+
+   Rel(orcestrator, LongTermMemory,"Use")
+   Rel(agent_task_generation, LongTermMemory,"Use")
+   Rel(agent_test_analysis, LongTermMemory,"Use")
+
+
+}
+Rel(chat_controller, orcestrator, "User Request")
+
+Rel(subject_controller, db, "Uses")
+Rel(sign_controller, db, "Uses")
+
+
+Rel(spa, controller_boundary, "Uses", "JSON/HTTPS WebSocket")
+
+Rel(student, spa,"Use")
+Rel(teacher, spa,"Use")
+
+Rel(subject_controller, lms,"API")
+@enduml
